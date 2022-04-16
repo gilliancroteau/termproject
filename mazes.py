@@ -15,8 +15,10 @@ def onAppStart(app):
     app.mobCol = 0
     app.stepsPerSecond = 3
     app.map = None
-    
 
+def onKeyPress(app, key):
+    if key == 'r':
+        onAppStart(app)
 
 def getCellBounds(app, row, col):
     cellWidth = (app.width - 2*app.margin) // app.cols

@@ -12,7 +12,6 @@ def makeGraph(rows, cols):
                     result[coords].append((tempRow, tempCol))
     return result
 
-
 #from pseudocode in TA pathfinding guide
 #returns list of nodes to visit from start to end
 def BFS(start, end, graph):

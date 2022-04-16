@@ -2,13 +2,16 @@ from pathandmazefunctions import *
 
 #room object
 class Room(object):
-    def __init__(self, path, width, height, rows, cols, graph):
+    def __init__(self, path, width, height, rows, cols, graph, mummies, sand, gold):
         self.path = path
         self.width = width
         self.height = height
         self.graph = graph
         self.rows = rows
         self.cols = cols
+        self.mummies = mummies
+        self.sand = sand
+        self.gold = gold
     def topCoords(self):
         return (1500//2-self.width//2, 1000//2 - self.height//2) #these have app.width and app.height hard coded
     def dimensions(self):
@@ -20,21 +23,6 @@ class Room(object):
         return [leftX, rightX, topY, bottomY]
 
 
-
-'''
-#wall object, child of room cause it kinda works the same
-class Wall(Room):
-    def __init__(self, path, width, height, topX, topY):
-        super().__init__(path, width, height)
-        self.topX = topX
-        self.topY = topY
-    def dimensions(self):
-        leftX = self.topX
-        rightX = self.topX + self.width
-        topY = self.topY
-        bottomY = self.topY + self.height
-        return [leftX, rightX, topY, bottomY]
-'''
 
 #mummy object
 class Mummy(object):

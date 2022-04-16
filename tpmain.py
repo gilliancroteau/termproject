@@ -26,7 +26,7 @@ def onAppStart(app):
     app.goldScore = 0
     app.goldPerGold = 10
     app.spriteSize = 25
-    app.goldCoords = [(900, 500), (600, 500)]
+    app.goldCoords = app.currentRoom.gold
     app.goldR = 20
     app.titleScreen = True
     app.inDungeon = False
@@ -37,16 +37,15 @@ def onAppStart(app):
     app.health = app.startHealth
     app.swordStrength = 5
     app.swordReach = 70
-    app.mummies = [Mummy(650, 500)]
+    app.mummies = app.currentRoom.mummies
     app.inventorySand = 0
-    app.sandInRoom = [Sand(650, 650)]
+    app.sandInRoom = app.currentRoom.sand
     app.hourglass = (700, 400, 100, 150) #left, top, width, height
     app.portal = (750, 275, 300, 50) #centerX, centerY, width, height
     app.leftDoor = (500, 450, 50, 100)#left, top, width, height
     app.rightDoor = (950, 450, 50, 100)#left, top, width, height
-    app.topDoor = (700, 250, 100, 50)#left, top, width, height
+    app.topDoor = (700, 250, 100, 30)#left, top, width, height
     app.bottomDoor = (700, 700, 100, 50)#left, top, width, height
-
 
 #distance formula
 def distance(x1, y1, x2, y2):
@@ -100,6 +99,9 @@ def switchRoom(app):
         newRoom = isRoom(app, drow, dcol)
         if newRoom != None and newRoom != False:
             app.currentRoom = newRoom
+            app.mummies = app.currentRoom.mummies
+            app.sandInRoom = app.currentRoom.sand
+            app.goldCoords = app.currentRoom.gold
             app.currentMapRowCol = (app.currentMapRowCol[0] + drow, app.currentMapRowCol[1] + dcol)
             app.playerX += -dcol * 300
             app.playerY += -drow * 300
@@ -133,7 +135,11 @@ def doStep(app):
 
 #moves sprite and checks for room bounds
 def doMove(app, dx, dy):
-    currentRowCol = rowAndCol(app, app.playerX, app.playerY)#for checking against going thru walls
+    prevtopRowCol = rowAndCol(app, app.playerX, app.playerY - app.spriteSize)
+    prevbottomRowCol = rowAndCol(app, app.playerX, app.playerY + app.spriteSize)
+    prevrightRowCol = rowAndCol(app, app.playerX + app.spriteSize, app.playerY)
+    prevleftRowCol = rowAndCol(app, app.playerX - app.spriteSize, app.playerY)
+    prevRowCols = [prevtopRowCol, prevbottomRowCol, prevrightRowCol, prevleftRowCol]
     app.playerX += app.speed * dx
     app.playerY += app.speed * dy
     if (app.playerY-app.spriteSize < app.currentRoomCoords[2] or 
@@ -146,12 +152,14 @@ def doMove(app, dx, dy):
     bottomRowCol = rowAndCol(app, app.playerX, app.playerY + app.spriteSize)
     rightRowCol = rowAndCol(app, app.playerX + app.spriteSize, app.playerY)
     leftRowCol = rowAndCol(app, app.playerX - app.spriteSize, app.playerY)
-    if (topRowCol not in app.currentRoom.graph or
-        bottomRowCol not in app.currentRoom.graph or
-        leftRowCol not in app.currentRoom.graph or
-        rightRowCol not in app.currentRoom.graph):
-        app.playerX -= app.speed * dx #cant go in walls (graph holes) (can get rid of this once wall checks are in)
-        app.playerY -= app.speed * dy
+    newRowCols = [topRowCol, bottomRowCol, rightRowCol, leftRowCol]
+    for i in range(len(newRowCols)):
+        prevRowCol = prevRowCols[i]
+        newRowCol = newRowCols[i]
+        if prevRowCol != newRowCol:
+            if newRowCol not in app.currentRoom.graph[prevRowCol]:
+                app.playerX -= app.speed * dx #cannot move thru walls/holes in graph
+                app.playerY -= app.speed * dy
 
 #checks if there is a room there in the map and returns room if there is one
 def isRoom(app, drow, dcol):
@@ -265,6 +273,30 @@ def drawWalls(app):
                     x1, y1, x2, y2 = cellBorders(app, row, col, drow, dcol)
                     drawLine(x1, y1, x2, y2, fill = 'black', lineWidth = 8)
 
+#draws doors
+def drawDoors(app):
+    for door in app.currentRoomDoors:
+        if door == 'left':
+            drow, dcol = 0, -1
+            if isRoom(app, drow, dcol):
+                drawRect(app.leftDoor[0], app.leftDoor[1], 
+                app.leftDoor[2], app.leftDoor[3], fill = 'brown')
+        elif door == 'right':
+            drow, dcol = 0, 1
+            if isRoom(app, drow, dcol):
+                drawRect(app.rightDoor[0], app.rightDoor[1], 
+                app.rightDoor[2], app.rightDoor[3], fill = 'brown')
+        elif door == 'top':
+            drow, dcol = -1, 0
+            if isRoom(app, drow, dcol):
+                drawRect(app.topDoor[0], app.topDoor[1], 
+                app.topDoor[2], app.topDoor[3], fill = 'brown')
+        elif door == 'bottom':
+            drow, dcol = 1, 0
+            if isRoom(app, drow, dcol):
+                drawRect(app.bottomDoor[0], app.bottomDoor[1], 
+                app.bottomDoor[2], app.bottomDoor[3], fill = 'brown')
+
 #draws the room as a rectangle (will eventually be from an image)
 def drawRoom(app):
     room = app.currentRoom
@@ -335,6 +367,7 @@ def drawTitleScreen(app):
 #active while playing game
 def drawDungeon(app):
     drawRoom(app)
+    drawDoors(app)
     drawSprite(app)
     drawTimer(app)
     drawGoldandSand(app)

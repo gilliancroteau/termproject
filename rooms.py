@@ -11,15 +11,23 @@ def createRooms():
     hourglass = [(3, 4), (3, 5), (4, 4), (4, 5), (5, 4), (5, 5)]
     for coord in hourglass:
         centralRoomGraph = createHole(centralRoomGraph, coord)
-    centralRoom = Room('noPathYet', 500, 500, 10, 10, centralRoomGraph)
+    centralMummies = [Mummy(650, 500)]
+    centralSand = [Sand(650, 650)]
+    centralGold = [(900, 500), (600, 500)]
+    centralRoom = Room('noPathYet', 500, 500, 10, 10, centralRoomGraph, 
+                        centralMummies, centralSand, centralGold)
     roomList.append(centralRoom)
     #open1
     open1Graph = makeGraph(10, 10)
-    open1 = Room('nopathyet', 500, 500, 10, 10, open1Graph)
+    mummies = [Mummy(650, 500), Mummy(850, 600)]
+    sand = [Sand(750, 750), Sand(900, 300)]
+    open1 = Room('nopathyet', 500, 500, 10, 10, open1Graph, mummies, sand, [])
     roomList.append(open1)
     #maze
-    mazeGraph = kruskals(makeGraph(10, 10))
-    maze = Room('nopathyet', 500, 500, 10, 10, mazeGraph)
+    mazeGraph = kruskals(makeGraph(5, 5))
+    mummies = [Mummy(525, 725)]
+    gold = [(625, 725)]
+    maze = Room('nopathyet', 500, 500, 5, 5, mazeGraph, mummies, [], gold)
     roomList.append(maze)
     return roomList
 

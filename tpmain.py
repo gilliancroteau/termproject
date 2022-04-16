@@ -1,5 +1,7 @@
 from cmu_cs3_graphics import *
 from objects import *
+from rooms import *
+from pathandmazefunctions import *
 
 
 #defines start stuff
@@ -14,9 +16,12 @@ def onAppStart(app):
     app.stepsPerSecond = 30
     app.sandTimer = 0
     app.direction = None
-    app.startRoom = Room('no path yet', 500, 500)
-    app.startRoomCoords = app.startRoom.dimensions()  #[leftX, rightX, topY, bottomY]
-    app.walls = [Wall('noPathYet', 100, 200, 700, 350)]
+    app.rooms = createRooms()
+    app.roomMap = roomMap(app.rooms)
+    app.currentMapRowCol = (2, 2)
+    app.currentRoom = app.rooms[0]
+    app.currentRoomCoords = app.currentRoom.dimensions()  #[leftX, rightX, topY, bottomY]
+    app.currentRoomDoors = ['left', 'right', 'top', 'bottom']
     app.timer = 120
     app.goldScore = 0
     app.goldPerGold = 10
@@ -31,32 +36,73 @@ def onAppStart(app):
     app.startHealth = 20
     app.health = app.startHealth
     app.swordStrength = 5
-    app.swordReach = 40
+    app.swordReach = 70
     app.mummies = [Mummy(650, 500)]
     app.inventorySand = 0
     app.sandInRoom = [Sand(650, 650)]
-    app.hourglass = (700, 350, 100, 200) #left, top, width, height
-    app.portal = (app.width//2, 250, 300, 50) #centerX, centerY, width, height
+    app.hourglass = (700, 400, 100, 150) #left, top, width, height
+    app.portal = (750, 275, 300, 50) #centerX, centerY, width, height
+    app.leftDoor = (500, 450, 50, 100)#left, top, width, height
+    app.rightDoor = (950, 450, 50, 100)#left, top, width, height
+    app.topDoor = (700, 250, 100, 50)#left, top, width, height
+    app.bottomDoor = (700, 700, 100, 50)#left, top, width, height
 
 
 #distance formula
 def distance(x1, y1, x2, y2):
     return ((x1-x2)**2+(y1-y2)**2)**0.5
 
-#controls timer, checks for game over, checks for mob attacks
+#controls timer, checks for game over, checks for mob attacks, moves mummies
 def onStep(app):
     if not app.paused:
         if app.inDungeon:
+            for mummy in app.mummies:
+                if mummy.alive:
+                    playerNode = rowAndCol(app, app.playerX, app.playerY)
+                    mummyNode = rowAndCol(app, mummy.x, mummy.y)
+                    mummy.pathfind(playerNode, mummyNode, app.currentRoom.graph)
             app.sandTimer += 1
             if app.sandTimer % app.stepsPerSecond == 0:
                 app.timer -= 1
                 for mummy in app.mummies:
-                    if distance(app.playerX, app.playerY, mummy.x, mummy.y) <= mummy.reach:
-                        app.health -= mummy.damage
+                    if mummy.alive:
+                        if distance(app.playerX, app.playerY, mummy.x, mummy.y) <= mummy.reach:
+                            app.health -= mummy.damage
             if app.timer <= 0 or app.health <= 0:
                 app.inDungeon = False
                 app.gameOver = True
-        
+
+#checks for exiting door and switches room if so
+def switchRoom(app):
+    drow, dcol = None, None
+    for door in app.currentRoomDoors:
+        if door == 'left':
+            if xyInside(app, app.playerX - app.spriteSize, app.playerY, 
+            app.leftDoor[0], app.leftDoor[0] + app.leftDoor[2], 
+            app.leftDoor[1], app.leftDoor[1] + app.leftDoor[1]):
+                drow, dcol = 0, -1
+        elif door == 'right':
+            if xyInside(app, app.playerX + app.spriteSize, app.playerY, 
+            app.rightDoor[0], app.rightDoor[0] + app.rightDoor[2], 
+            app.rightDoor[1], app.rightDoor[1] + app.rightDoor[1]):
+                drow, dcol = 0, 1
+        elif door == 'top':
+            if xyInside(app, app.playerX, app.playerY - app.spriteSize, 
+            app.topDoor[0], app.topDoor[0] + app.topDoor[2], 
+            app.topDoor[1], app.topDoor[1] + app.topDoor[3]):
+                drow, dcol = -1, 0
+        elif door == 'bottom':
+            if xyInside(app, app.playerX, app.playerY + app.spriteSize, 
+            app.bottomDoor[0], app.bottomDoor[0] + app.bottomDoor[2], 
+            app.bottomDoor[1], app.bottomDoor[1] + app.bottomDoor[1]):
+                drow, dcol = 1, 0
+    if drow != None:
+        newRoom = isRoom(app, drow, dcol)
+        if newRoom != None and newRoom != False:
+            app.currentRoom = newRoom
+            app.currentMapRowCol = (app.currentMapRowCol[0] + drow, app.currentMapRowCol[1] + dcol)
+            app.playerX += -dcol * 300
+            app.playerY += -drow * 300
 
 #controls image cycling for sprites, checks for gold collision and sand collision, checks for exit/doors
 def doStep(app):
@@ -77,31 +123,54 @@ def doStep(app):
             if distance(app.playerX, app.playerY, sand.x, sand.y) <= sand.edgeSize/2 + app.spriteSize:
                 app.inventorySand += 1
                 sand.onGround = False
-    
-    if xyInside(app, app.playerX, app.playerY - app.spriteSize,
-             app.portal[0]-app.portal[2]/2, app.portal[0] + app.portal[2]/2,
-                app.portal[1]-app.portal[3]/2, app.portal[1] + app.portal[3]/2):
-        app.inDungeon = False
-        app.exited = True
+    if app.currentRoom == app.rooms[0]:
+        if xyInside(app, app.playerX, app.playerY - app.spriteSize,
+                app.portal[0]-app.portal[2]/2, app.portal[0] + app.portal[2]/2,
+                    app.portal[1]-app.portal[3]/2, app.portal[1] + app.portal[3]/2):
+            app.inDungeon = False
+            app.exited = True
+    switchRoom(app)
 
 #moves sprite and checks for room bounds
 def doMove(app, dx, dy):
+    currentRowCol = rowAndCol(app, app.playerX, app.playerY)#for checking against going thru walls
     app.playerX += app.speed * dx
     app.playerY += app.speed * dy
-    if (app.playerY-app.spriteSize < app.startRoomCoords[2] or 
-        app.playerY+app.spriteSize > app.startRoomCoords[3]
-        or app.playerX-app.spriteSize < app.startRoomCoords[0] 
-        or app.playerX+app.spriteSize > app.startRoomCoords[1]):
+    if (app.playerY-app.spriteSize < app.currentRoomCoords[2] or 
+        app.playerY+app.spriteSize > app.currentRoomCoords[3]
+        or app.playerX-app.spriteSize < app.currentRoomCoords[0] 
+        or app.playerX+app.spriteSize > app.currentRoomCoords[1]):
         app.playerX -= app.speed * dx #within bounds of room
         app.playerY -= app.speed * dy
-    for wall in app.walls:
-        wallCoords = wall.dimensions()
-        if (app.playerX+app.spriteSize >= wallCoords[0] and
-            app.playerX-app.spriteSize <= wallCoords[1] and
-            app.playerY+app.spriteSize >= wallCoords[2] and
-            app.playerY-app.spriteSize <= wallCoords[3]):
-            app.playerX -= app.speed * dx #outsode of wall
-            app.playerY -= app.speed * dy
+    topRowCol = rowAndCol(app, app.playerX, app.playerY - app.spriteSize)
+    bottomRowCol = rowAndCol(app, app.playerX, app.playerY + app.spriteSize)
+    rightRowCol = rowAndCol(app, app.playerX + app.spriteSize, app.playerY)
+    leftRowCol = rowAndCol(app, app.playerX - app.spriteSize, app.playerY)
+    if (topRowCol not in app.currentRoom.graph or
+        bottomRowCol not in app.currentRoom.graph or
+        leftRowCol not in app.currentRoom.graph or
+        rightRowCol not in app.currentRoom.graph):
+        app.playerX -= app.speed * dx #cant go in walls (graph holes) (can get rid of this once wall checks are in)
+        app.playerY -= app.speed * dy
+
+#checks if there is a room there in the map and returns room if there is one
+def isRoom(app, drow, dcol):
+    newRow = app.currentMapRowCol[0] + drow
+    newCol = app.currentMapRowCol[1] + dcol
+    if newRow < 0 or newCol < 0 or newRow >4 or newCol > 4:
+        return False
+    nextRoom = app.roomMap[newRow][newCol]
+    if nextRoom != None:
+        return nextRoom
+    return False
+
+#gives current(row, col) location in room
+def rowAndCol(app, x, y):
+    leftMargin = app.currentRoomCoords[0]
+    topMargin = app.currentRoomCoords[2]
+    row = (y - topMargin) // (app.currentRoom.height/app.currentRoom.rows)
+    col = (x - leftMargin) // (app.currentRoom.width/app.currentRoom.cols)
+    return (row, col)
 
 #mouse clicks
 def onMousePress(app, x, y):
@@ -154,16 +223,57 @@ def drawSprite(app):
     i = app.spriteI%2
     drawImage(spriteList[i], app.playerX, app.playerY, align = 'center')
 
+#cell bounds
+def getCellBounds(app, row, col):
+    leftMargin = app.currentRoomCoords[0]
+    topMargin = app.currentRoomCoords[2]
+    cellWidth = (app.width - 2*leftMargin) // app.currentRoom.cols
+    cellHeight = (app.height - 2*topMargin) // app.currentRoom.rows
+    left = leftMargin + cellWidth * col
+    top = topMargin + cellHeight * row
+    return left, top, cellWidth, cellHeight
+
+#returns True if x and y are inside these bounds
+def xyInside(app, x, y, leftX, rightX, topY, bottomY):
+    if leftX <= x <= rightX and topY <= y <= bottomY:
+        return True
+    return False
+
+#returns coords of lines along cell border
+def cellBorders(app, row, col, drow, dcol):
+    left, top, cellWidth, cellHeight = getCellBounds(app, row, col)
+    if (drow, dcol) == (-1, 0):
+        x1, y1, x2, y2 = left, top, left+cellWidth, top
+    elif (drow, dcol) == (1, 0):
+        x1, y1, x2, y2 = left, top+cellHeight, left+cellWidth, top+cellHeight
+    elif (drow, dcol) == (0, -1):
+        x1, y1, x2, y2 = left, top, left, top+cellHeight
+    elif (drow, dcol) == (0, 1):
+        x1, y1, x2, y2 = left+cellWidth, top, left+cellWidth, top+cellHeight
+    return x1, y1, x2, y2
+
+#draws walls according to map
+def drawWalls(app):
+    for (row, col) in app.currentRoom.graph:
+        for drow, dcol in [(-1, 0), (0, 1), (1, 0), (0, -1)]:
+            nrow = row + drow
+            ncol = col + dcol
+            if nrow < 0 or ncol < 0 or nrow >= app.currentRoom.rows or ncol >= app.currentRoom.cols:
+                pass
+            else:
+                if (nrow, ncol) not in app.currentRoom.graph[(row, col)]:
+                    x1, y1, x2, y2 = cellBorders(app, row, col, drow, dcol)
+                    drawLine(x1, y1, x2, y2, fill = 'black', lineWidth = 8)
+
 #draws the room as a rectangle (will eventually be from an image)
 def drawRoom(app):
-    room = app.startRoom
-    coords = room.topCoords()
-    drawRect(coords[0], coords[1], room.width, room.height, fill= 'orange')
-
-#draws walls as a rectangle for testing purposes, will eventually be drawn only in room image
-def drawWalls(app):
-    for wall in app.walls:
-        drawRect(wall.topX, wall.topY, wall.width, wall.height, fill = 'yellow')
+    room = app.currentRoom
+    for row in range(room.rows):
+        for col in range(room.cols):
+            color = 'orange' if (row, col) in room.graph else 'yellow'
+            left, top, cellWidth, cellHeight = getCellBounds(app, row, col)
+            drawRect(left, top, cellWidth, cellHeight, border = 'lightgray', 
+            fill = color, borderWidth = 1)
 
 #draws the countdown timer
 def drawTimer(app):
@@ -210,15 +320,9 @@ def drawHealth(app):
 
 #draws exit portal
 def drawPortal(app):
-    drawRect(app.portal[0], app.portal[1], app.portal[2], app.portal[3], 
-    fill = 'purple', borderWidth = 10, border = 'black', align = 'center')
-
-#returns True if x and y are inside these bounds
-def xyInside(app, x, y, leftX, rightX, topY, bottomY):
-    if leftX <= x <= rightX and topY <= y <= bottomY:
-        return True
-    return False
-
+    if app.currentRoom == app.rooms[0]:
+        drawRect(app.portal[0], app.portal[1], app.portal[2], app.portal[3], 
+        fill = 'purple', borderWidth = 10, border = 'black', align = 'center')
 
 #draws title screen (eventually from image)
 def drawTitleScreen(app):
@@ -231,7 +335,6 @@ def drawTitleScreen(app):
 #active while playing game
 def drawDungeon(app):
     drawRoom(app)
-    drawWalls(app)
     drawSprite(app)
     drawTimer(app)
     drawGoldandSand(app)
@@ -240,7 +343,7 @@ def drawDungeon(app):
     drawHealth(app)
     drawSandInventory(app)
     drawPortal(app)
-
+    drawWalls(app)
 
 #checks if game is not over, then draws everything
 def redrawAll(app):
@@ -252,6 +355,8 @@ def redrawAll(app):
     elif app.gameOver:
         drawLabel('you died', app.width//2, app.height//2, fill = 'white', size = 20)
     elif app.exited:
+        #maybe add funn messages depending on time left on timer
+        #ex: only 10s left, say you barely made it out with your life
         drawLabel(f'You won {app.goldScore} gold! Congrats', app.width//2, app.height//2, fill = 'white', size = 20)
 
 #run app (these are the game dimensions I am testing on, may eventually change)

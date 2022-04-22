@@ -9,7 +9,7 @@ def onAppStart(app):
     app.paused = False
     app.playerX = 600#app.width//2
     app.playerY = 400#app.height//2
-    app.speed = 10
+    app.speed = 15
     app.squares = ['red square.png', 'blue square.png']
     app.spriteTimer = 0
     app.spriteI = 0
@@ -28,6 +28,9 @@ def onAppStart(app):
     app.goldCoords = app.currentRoom.gold
     app.goldR = 20
     app.titleScreen = True
+    app.helpScreen = False
+    app.helpScreenEnter = [200, 650, 100, 50]#left, top, width, height
+    app.helpScreenExit = [1200, 250, 30, 30]#left, top, width, height
     app.inDungeon = False
     app.exited = False
     app.gameOver = False
@@ -170,12 +173,12 @@ def doMove(app, dx, dy):
             if newRowCol not in app.currentRoom.graph[prevRowCol]:
                 app.playerX -= app.speed * dx #cannot move thru walls/holes in graph
                 app.playerY -= app.speed * dy
-    if topRowCol not in app.currentRoom.graph[bottomRowCol]:
-        app.playerX -= app.speed * dx #helps with maze impaling
-        app.playerY -= app.speed * dy
-    if leftRowCol not in app.currentRoom.graph[rightRowCol]:
-        app.playerX -= app.speed * dx #helps with maze impaling
-        app.playerY -= app.speed * dy
+    #if topRowCol not in app.currentRoom.graph[bottomRowCol]:
+        #app.playerX -= app.speed * dx #helps with maze impaling
+        #app.playerY -= app.speed * dy
+    #if leftRowCol not in app.currentRoom.graph[rightRowCol]:
+        #app.playerX -= app.speed * dx #helps with maze impaling
+        #app.playerY -= app.speed * dy
 
 #checks if there is a room there in the map and returns room if there is one
 def isRoom(app, drow, dcol):
@@ -203,6 +206,14 @@ def onMousePress(app, x, y):
                      app.enterRect[1], app.enterRect[1] + app.enterRect[3]):
             app.titleScreen = False
             app.inDungeon = True
+        elif app.helpScreen==False and xyInside(app, x, y, app.helpScreenEnter[0], 
+                app.helpScreenEnter[0] + app.helpScreenEnter[2],
+                app.helpScreenEnter[1], app.helpScreenEnter[1] + app.helpScreenEnter[3]):
+            app.helpScreen = True
+        elif app.helpScreen==True and xyInside(app, x, y, app.helpScreenExit[0], 
+                app.helpScreenExit[0] + app.helpScreenExit[2],
+                app.helpScreenExit[1], app.helpScreenExit[1] + app.helpScreenExit[3]):
+            app.helpScreen = False
     if not app.paused:
         if app.inDungeon:
             for mummy in app.mummies:
@@ -379,6 +390,23 @@ def drawTitleScreen(app):
             fill = None, border = 'white')
     drawLabel('Enter', app.enterRect[0]+app.enterRect[2]//2, 
             app.enterRect[1]+app.enterRect[3]//2, fill = 'white')
+    drawRect(app.helpScreenEnter[0], app.helpScreenEnter[1], app.helpScreenEnter[2], 
+            app.helpScreenEnter[3], fill = None, border = 'white')
+    drawLabel('how to play', app.helpScreenEnter[0]+app.helpScreenEnter[2]//2, 
+            app.helpScreenEnter[1]+app.helpScreenEnter[3]//2, fill = 'white')
+
+#draws help screen if active
+def drawHelpScreen(app):
+    words = '''\
+    Use WASD to move, and click mouse to add sand to hourglass
+    and hit mummies. Traverse the dungeon to find gold, but
+    don't get trapped inside when the hourglass runs out!'''
+    drawRect(200, 200, 1100, 600, fill = 'blue')
+    drawLabel(words, app.width//2, app.height//2, fill = 'white', align = 'center')
+    drawRect(app.helpScreenExit[0], app.helpScreenExit[1], app.helpScreenExit[2], 
+            app.helpScreenExit[3], fill = None, border = 'white')
+    drawLabel('X', app.helpScreenExit[0]+app.helpScreenExit[2]/2, 
+                app.helpScreenExit[1]+app.helpScreenExit[3]/2, fill = 'white')
 
 #active while playing game
 def drawDungeon(app):
@@ -399,6 +427,8 @@ def redrawAll(app):
     drawRect(0, 0, app.width, app.height, fill = 'black')
     if app.titleScreen:
         drawTitleScreen(app)
+        if app.helpScreen:
+            drawHelpScreen(app)
     elif app.inDungeon:
         drawDungeon(app)
     elif app.gameOver:

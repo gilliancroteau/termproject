@@ -24,7 +24,6 @@ def onAppStart(app):
     app.currentRoomDoors = ['left', 'right', 'top', 'bottom']
     app.timer = 120
     app.goldScore = 0
-    app.goldPerGold = 10
     app.spriteSize = 25
     app.goldCoords = app.currentRoom.gold
     app.goldR = 20
@@ -42,10 +41,10 @@ def onAppStart(app):
     app.sandInRoom = app.currentRoom.sand
     app.hourglass = (700, 400, 100, 150) #left, top, width, height
     app.portal = (750, 275, 300, 50) #centerX, centerY, width, height
-    app.leftDoor = (500, 450, 50, 100)#left, top, width, height
-    app.rightDoor = (950, 450, 50, 100)#left, top, width, height
-    app.topDoor = (700, 250, 100, 30)#left, top, width, height
-    app.bottomDoor = (700, 700, 100, 50)#left, top, width, height
+    app.leftDoor = (app.currentRoomCoords[0], app.currentRoomCoords[3] - (app.currentRoomCoords[3] - app.currentRoomCoords[2])/2 - 50, 30, 100)#left, top, width, height
+    app.rightDoor = (app.currentRoomCoords[1]-30, app.currentRoomCoords[3] - (app.currentRoomCoords[3] - app.currentRoomCoords[2])/2 - 50, 30, 100)#left, top, width, height
+    app.topDoor = (app.currentRoomCoords[0] + (app.currentRoomCoords[1]-app.currentRoomCoords[0])/2 - 50, app.currentRoomCoords[2], 100, 30)#left, top, width, height
+    app.bottomDoor = (app.currentRoomCoords[0] + (app.currentRoomCoords[1]-app.currentRoomCoords[0])/2 - 50, app.currentRoomCoords[3]-30, 100, 30)#left, top, width, height
 
 #distance formula
 def distance(x1, y1, x2, y2):
@@ -99,12 +98,23 @@ def switchRoom(app):
         newRoom = isRoom(app, drow, dcol)
         if newRoom != None and newRoom != False:
             app.currentRoom = newRoom
+            app.currentRoomCoords = app.currentRoom.dimensions()
+            app.leftDoor = (app.currentRoomCoords[0], app.currentRoomCoords[3] - (app.currentRoomCoords[3] - app.currentRoomCoords[2])/2 - 50, 30, 100)#left, top, width, height
+            app.rightDoor = (app.currentRoomCoords[1]-30, app.currentRoomCoords[3] - (app.currentRoomCoords[3] - app.currentRoomCoords[2])/2 - 50, 30, 100)#left, top, width, height
+            app.topDoor = (app.currentRoomCoords[0] + (app.currentRoomCoords[1]-app.currentRoomCoords[0])/2 - 50, app.currentRoomCoords[2], 100, 30)#left, top, width, height
+            app.bottomDoor = (app.currentRoomCoords[0] + (app.currentRoomCoords[1]-app.currentRoomCoords[0])/2 - 50, app.currentRoomCoords[3]-30, 100, 30)#left, top, width, height
             app.mummies = app.currentRoom.mummies
             app.sandInRoom = app.currentRoom.sand
             app.goldCoords = app.currentRoom.gold
             app.currentMapRowCol = (app.currentMapRowCol[0] + drow, app.currentMapRowCol[1] + dcol)
-            app.playerX += -dcol * 300
-            app.playerY += -drow * 300
+            if drow == -1:
+                app.playerY = app.bottomDoor[1] - app.spriteSize - 10
+            elif drow == 1:
+                app.playerY = app.topDoor[1] + app.topDoor[2] + app.spriteSize 
+            elif dcol == -1:
+                app.playerX = app.rightDoor[0] - app.spriteSize - 10
+            elif dcol == 1:
+                app.playerX = app.leftDoor[0] + app.leftDoor[2] + app.spriteSize + 10
 
 #controls image cycling for sprites, checks for gold collision and sand collision, checks for exit/doors
 def doStep(app):
@@ -116,7 +126,7 @@ def doStep(app):
         while i < len(app.goldCoords):
             coords = app.goldCoords[i]
             if distance(app.playerX, app.playerY, coords[0], coords[1]) <= app.spriteSize:
-                app.goldScore += app.goldPerGold
+                app.goldScore += random.randint(1, 20)
                 app.goldCoords.remove(coords)
             else:
                 i += 1
@@ -160,6 +170,12 @@ def doMove(app, dx, dy):
             if newRowCol not in app.currentRoom.graph[prevRowCol]:
                 app.playerX -= app.speed * dx #cannot move thru walls/holes in graph
                 app.playerY -= app.speed * dy
+    if topRowCol not in app.currentRoom.graph[bottomRowCol]:
+        app.playerX -= app.speed * dx #helps with maze impaling
+        app.playerY -= app.speed * dy
+    if leftRowCol not in app.currentRoom.graph[rightRowCol]:
+        app.playerX -= app.speed * dx #helps with maze impaling
+        app.playerY -= app.speed * dy
 
 #checks if there is a room there in the map and returns room if there is one
 def isRoom(app, drow, dcol):

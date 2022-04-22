@@ -1,0 +1,30 @@
+import copy
+import random
+
+roomList = [0, 1, 2, 3, 4, 5]
+
+def generateMap(roomList):
+    rooms = copy.copy(roomList)
+    map = [[None]*5 for _ in range(5)]
+    centralRoom = rooms.pop(0)
+    map[2][2] = centralRoom
+    random.shuffle(rooms)
+    for room in rooms:
+        while True:
+            row = random.randint(0, 4)
+            col = random.randint(0, 4)
+            if (row, col) != (2, 2) and (row, col) != (1, 2) and map[row][col] == None:
+                break
+        map[row][col] = room
+    return map
+
+map = generateMap(roomList)
+for row in map:
+    print(row)
+
+
+'''
+for drow in [-1, 0, 1]:
+                    for dcol in [-1, 0, 1]:
+                        if 0<=row+drow<5 and 0<=col+dcol<5:
+                            if map[row+drow][col+dcol]!=None:'''

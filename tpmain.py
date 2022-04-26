@@ -2,6 +2,7 @@ from cmu_cs3_graphics import *
 from objects import *
 from rooms import *
 from pathandmazefunctions import *
+from filesystem import *
 from PIL import Image
 
 
@@ -51,6 +52,8 @@ def onAppStart(app):
     loadPlayerSprite(app)
     mummyFile = Image.open('mummy.png')
     app.mummyFile = CMUImage(mummyFile)
+    app.endMessage = False
+    gameStart(app)#json file
 
 #distance formula
 def distance(x1, y1, x2, y2):
@@ -58,6 +61,9 @@ def distance(x1, y1, x2, y2):
 
 #controls timer, checks for game over, checks for mob attacks, moves mummies
 def onStep(app):
+    if app.gameOver or app.exited and not app.endMessage:
+        app.endMessage = True
+        gameEnd(app)#json file
     if not app.paused:
         if app.inDungeon:
             for mummy in app.mummies:
@@ -75,6 +81,7 @@ def onStep(app):
             if app.timer <= 0 or app.health <= 0:
                 app.inDungeon = False
                 app.gameOver = True
+                app.goldScore = 0
 
 #checks for exiting door and switches room if so
 def switchRoom(app):
@@ -254,6 +261,7 @@ def onKeyPress(app, key):
 
 #makes sprite lists
 #from demo code by Melina
+#sprites drawn by me using pixilart.com
 def loadPlayerSprite(app):
     spriteSheet = Image.open('player sprite sheet.png')
     app.leftSprites = []
@@ -387,7 +395,6 @@ def drawMummies(app):
     for mummy in app.mummies:
         if mummy.alive:
             drawImage(app.mummyFile, mummy.x, mummy.y, align = 'center')
-            #drawCircle(mummy.x, mummy.y, mummy.r, fill = mummy.color, border = 'black')
 
 #draws score
 def drawScore(app):
@@ -456,42 +463,10 @@ def redrawAll(app):
     elif app.gameOver:
         drawLabel('you died', app.width//2, app.height//2, fill = 'white', size = 20)
     elif app.exited:
-        #maybe add funn messages depending on time left on timer
-        #ex: only 10s left, say you barely made it out with your life
         drawLabel(f'You won {app.goldScore} gold! Congrats', app.width//2, app.height//2, fill = 'white', size = 20)
 
 #run app (these are the game dimensions I am testing on, may eventually change)
 runApp(1500, 1000)
 
 
-'''
-make mummies flash red briefly when taking damage
-'''
-
-'''
-pathfinding: mobs will pathfind to player
-have to pathfind in open rooms with occasional walls/features
-or in more maze-like rooms
-pathfinding goals: quickest route aka shortest
-may use BFS for shortest path, but this is maybe only for graphs?
-so may use DFS
- but could represent room as invisable grid, which translates to graph, 
-       and walls break edges in graph, so then bfs return squares of grid to visit on way to player
-'''
-
-'''
-next plans:
-titlescreen/escape mode
-hardcode a map and make it so you can move thru it
-add sand to timer function
-add mobs class/drawing/etc
-add attacks for player to fight mobs and healthbar
-pathfinding (lots of complexoty!)
-add rooms with puzzles for extra gold- word unscrable, small drag and drop puzzle, etc, could be among us like tasks
-add rooms with mazes and make sure mobs can still pathfind
-add keys/vaults for more gold
-randomly generate dungeons
-pixel sprites/rooms
-add extras- loot items like better swords, health potions, etc
-'''
 

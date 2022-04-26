@@ -64,7 +64,7 @@ def createWall(graph, node1, node2):
 
 
 import random
-#ta maze guide, https://weblog.jamisbuck.org/2011/1/3/maze-generation-kruskal-s-algorithm
+#TA maze guide and https://weblog.jamisbuck.org/2011/1/3/maze-generation-kruskal-s-algorithm
 def kruskals(templateGraph):
     maze = dict()
     for key in templateGraph:

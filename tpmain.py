@@ -2,20 +2,20 @@ from cmu_cs3_graphics import *
 from objects import *
 from rooms import *
 from pathandmazefunctions import *
+from PIL import Image
 
 
 #defines start stuff
 def onAppStart(app):
     app.paused = False
-    app.playerX = 600#app.width//2
-    app.playerY = 400#app.height//2
+    app.playerX = 750
+    app.playerY = 350
     app.speed = 15
-    app.squares = ['red square.png', 'blue square.png']
     app.spriteTimer = 0
     app.spriteI = 0
     app.stepsPerSecond = 30
     app.sandTimer = 0
-    app.direction = None
+    app.direction = 'down'
     app.rooms = createRooms()
     app.roomMap = roomMap(app.rooms)
     app.currentMapRowCol = (2, 2)
@@ -29,12 +29,12 @@ def onAppStart(app):
     app.goldR = 20
     app.titleScreen = True
     app.helpScreen = False
-    app.helpScreenEnter = [200, 650, 100, 50]#left, top, width, height
+    app.helpScreenEnter = [650, 895, 230, 50]#left, top, width, height
     app.helpScreenExit = [1200, 250, 30, 30]#left, top, width, height
     app.inDungeon = False
     app.exited = False
     app.gameOver = False
-    app.enterRect = (app.width//2-50, app.height*0.75-25, 100, 50) #left, top, width, height
+    app.enterRect = (app.width//2-42, app.height*0.75-25, 120, 122) #left, top, width, height
     app.startHealth = 20
     app.health = app.startHealth
     app.swordStrength = 5
@@ -48,6 +48,9 @@ def onAppStart(app):
     app.rightDoor = (app.currentRoomCoords[1]-30, app.currentRoomCoords[3] - (app.currentRoomCoords[3] - app.currentRoomCoords[2])/2 - 50, 30, 100)#left, top, width, height
     app.topDoor = (app.currentRoomCoords[0] + (app.currentRoomCoords[1]-app.currentRoomCoords[0])/2 - 50, app.currentRoomCoords[2], 100, 30)#left, top, width, height
     app.bottomDoor = (app.currentRoomCoords[0] + (app.currentRoomCoords[1]-app.currentRoomCoords[0])/2 - 50, app.currentRoomCoords[3]-30, 100, 30)#left, top, width, height
+    loadPlayerSprite(app)
+    mummyFile = Image.open('mummy.png')
+    app.mummyFile = CMUImage(mummyFile)
 
 #distance formula
 def distance(x1, y1, x2, y2):
@@ -122,7 +125,7 @@ def switchRoom(app):
 #controls image cycling for sprites, checks for gold collision and sand collision, checks for exit/doors
 def doStep(app):
     app.spriteTimer += 1
-    if app.spriteTimer%10 == 0:
+    if app.spriteTimer%3 == 0:
         app.spriteI +=1
     if app.goldCoords != []:
         i = 0
@@ -249,14 +252,40 @@ def onKeyPress(app, key):
     elif key == 'r':
         onAppStart(app)
 
-#draws the sprite with the walking animation (right now that is only flashing red and blue when moving right)
+#makes sprite lists
+#from demo code by Melina
+def loadPlayerSprite(app):
+    spriteSheet = Image.open('player sprite sheet.png')
+    app.leftSprites = []
+    app.rightSprites = []
+    app.upSprites = []
+    app.downSprites = []
+    leftStrip = spriteSheet.crop((0, 151, 200, 200))
+    rightStrip = spriteSheet.crop((0, 51, 200, 100))
+    upStrip = spriteSheet.crop((0, 101, 200, 150))
+    downStrip = spriteSheet.crop((0, 0, 200, 50))
+    for i in range(4):
+        leftSprite = CMUImage(leftStrip.crop((i*50, 0, i*50+50, 50)))
+        app.leftSprites.append(leftSprite)
+        rightSprite = CMUImage(rightStrip.crop((i*50, 0, i*50+50, 50)))
+        app.rightSprites.append(rightSprite)
+        upSprite = CMUImage(upStrip.crop((i*50, 0, i*50+50, 50)))
+        app.upSprites.append(upSprite)
+        downSprite = CMUImage(downStrip.crop((i*50, 0, i*50+50, 50)))
+        app.downSprites.append(downSprite)
+
+#draws the sprite with the walking animation 
 def drawSprite(app):
     if app.direction == 'right':
-        spriteList = app.squares
-    else:
-        spriteList = ['red square.png', 'red square.png']
-    i = app.spriteI%2
-    drawImage(spriteList[i], app.playerX, app.playerY, align = 'center')
+        spriteList = app.rightSprites
+    elif app.direction == 'left':
+        spriteList = app.leftSprites
+    elif app.direction == 'up':
+        spriteList = app.upSprites
+    elif app.direction == 'down':
+        spriteList = app.downSprites
+    i = app.spriteI%4
+    drawImage(spriteList[i], app.playerX, app.playerY, align = 'center', width = 60, height = 60)
 
 #cell bounds
 def getCellBounds(app, row, col):
@@ -289,16 +318,17 @@ def cellBorders(app, row, col, drow, dcol):
 
 #draws walls according to map
 def drawWalls(app):
-    for (row, col) in app.currentRoom.graph:
-        for drow, dcol in [(-1, 0), (0, 1), (1, 0), (0, -1)]:
-            nrow = row + drow
-            ncol = col + dcol
-            if nrow < 0 or ncol < 0 or nrow >= app.currentRoom.rows or ncol >= app.currentRoom.cols:
-                pass
-            else:
-                if (nrow, ncol) not in app.currentRoom.graph[(row, col)]:
-                    x1, y1, x2, y2 = cellBorders(app, row, col, drow, dcol)
-                    drawLine(x1, y1, x2, y2, fill = 'black', lineWidth = 8)
+    if app.currentMapRowCol != (2, 2):
+        for (row, col) in app.currentRoom.graph:
+            for drow, dcol in [(-1, 0), (0, 1), (1, 0), (0, -1)]:
+                nrow = row + drow
+                ncol = col + dcol
+                if nrow < 0 or ncol < 0 or nrow >= app.currentRoom.rows or ncol >= app.currentRoom.cols:
+                    pass
+                else:
+                    if (nrow, ncol) not in app.currentRoom.graph[(row, col)]:
+                        x1, y1, x2, y2 = cellBorders(app, row, col, drow, dcol)
+                        drawLine(x1, y1, x2, y2, fill = 'black', lineWidth = 8)
 
 #draws doors
 def drawDoors(app):
@@ -356,7 +386,8 @@ def drawGoldandSand(app):
 def drawMummies(app):
     for mummy in app.mummies:
         if mummy.alive:
-            drawCircle(mummy.x, mummy.y, mummy.r, fill = mummy.color, border = 'black')
+            drawImage(app.mummyFile, mummy.x, mummy.y, align = 'center')
+            #drawCircle(mummy.x, mummy.y, mummy.r, fill = mummy.color, border = 'black')
 
 #draws score
 def drawScore(app):
@@ -383,26 +414,17 @@ def drawPortal(app):
         drawRect(app.portal[0], app.portal[1], app.portal[2], app.portal[3], 
         fill = 'purple', borderWidth = 10, border = 'black', align = 'center')
 
-#draws title screen (eventually from image)
+#draws title screen 
 def drawTitleScreen(app):
-    drawLabel('Sands of Time', app.width/2, app.height/2, size = 30, bold = True, fill = 'white')
-    drawRect(app.enterRect[0], app.enterRect[1], app.enterRect[2], app.enterRect[3], 
-            fill = None, border = 'white')
-    drawLabel('Enter', app.enterRect[0]+app.enterRect[2]//2, 
-            app.enterRect[1]+app.enterRect[3]//2, fill = 'white')
-    drawRect(app.helpScreenEnter[0], app.helpScreenEnter[1], app.helpScreenEnter[2], 
-            app.helpScreenEnter[3], fill = None, border = 'white')
-    drawLabel('how to play', app.helpScreenEnter[0]+app.helpScreenEnter[2]//2, 
-            app.helpScreenEnter[1]+app.helpScreenEnter[3]//2, fill = 'white')
+    titleScreenImage = Image.open('sot title screen 500x500.png')
+    titleScreenImage = CMUImage(titleScreenImage)
+    drawImage(titleScreenImage, 250, 0, width = 1000, height = 1000)
 
 #draws help screen if active
 def drawHelpScreen(app):
-    words = '''\
-    Use WASD to move, and click mouse to add sand to hourglass
-    and hit mummies. Traverse the dungeon to find gold, but
-    don't get trapped inside when the hourglass runs out!'''
-    drawRect(200, 200, 1100, 600, fill = 'blue')
-    drawLabel(words, app.width//2, app.height//2, fill = 'white', align = 'center')
+    howToPlay = Image.open('howtoplayscreen.png')
+    howToPlay = CMUImage(howToPlay)
+    drawImage(howToPlay, 200, 200, width = 1100, height = 600)
     drawRect(app.helpScreenExit[0], app.helpScreenExit[1], app.helpScreenExit[2], 
             app.helpScreenExit[3], fill = None, border = 'white')
     drawLabel('X', app.helpScreenExit[0]+app.helpScreenExit[2]/2, 

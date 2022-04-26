@@ -21,6 +21,8 @@ class Room(object):
         topY = coords[1]
         bottomY = coords[1] + self.height
         return [leftX, rightX, topY, bottomY]
+    def __repr__(self):
+        return self.path
 
 
 
@@ -33,7 +35,7 @@ class Mummy(object):
         self.damage = 3
         self.alive = True
         self.reach = 60
-        self.r = 30
+        self.r = 25
         self.color = 'white'
         self.speed = 2
     def move(self, playerX, playerY, roomGraph):

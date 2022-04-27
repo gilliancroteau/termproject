@@ -12,7 +12,8 @@ def makeGraph(rows, cols):
                     result[coords].append((tempRow, tempCol))
     return result
 
-#from pseudocode in TA pathfinding guide
+#references:
+#TA Pathfinding guide: https://www.cs.cmu.edu/~112/notes/student-tp-guides/Pathfinding.pdf
 #returns list of nodes to visit from start to end
 def BFS(start, end, graph):
     queue = [start]
@@ -62,9 +63,11 @@ def createWall(graph, node1, node2):
     resultGraph[node2].remove(node1)
     return resultGraph
 
-
 import random
-#TA maze guide and https://weblog.jamisbuck.org/2011/1/3/maze-generation-kruskal-s-algorithm
+#references:
+#TA Maze Guide: https://www.cs.cmu.edu/~112/notes/student-tp-guides/Mazes.pdf
+#and https://weblog.jamisbuck.org/2011/1/3/maze-generation-kruskal-s-algorithm
+#generates random maze in a graph
 def kruskals(templateGraph):
     maze = dict()
     for key in templateGraph:

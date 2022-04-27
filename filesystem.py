@@ -1,12 +1,15 @@
 import json
 
-#Used to initialize json file, do not run again
+#references:
 #all json info in this file from https://realpython.com/python-json/
-'''
-data = {'gillian':[0]}
-with open('highscores.json', 'w') as write_file:
-    json.dump(data, write_file)
-'''
+#also referenced: class notes from 15-110
+
+#Used to initialize json file
+#only needs to run if the highscore file needs to be reset
+def resetHighscoreJson():
+    data = {'gillian':[0]}
+    with open('highscores.json', 'w') as write_file:
+        json.dump(data, write_file)
 
 #opens json file, initializes username, and displays previous high score
 def gameStart(app):
@@ -15,6 +18,7 @@ def gameStart(app):
     print('''
 -----------------------------------------------
         ''')
+    print('Welcome to Sands of Time!')
     name = str(input('Enter your username, or a create a new one: '))
     app.name = name
     if name in highscores:
@@ -24,7 +28,7 @@ def gameStart(app):
         plays = len(scores)
         sval = 's' if plays>1 else ''
         print(f'You have played Sands of Time {plays} time{sval}!')
-        print(f'Your previous high score: {highscore}. Try to beat it!')
+        print(f'Your previous high score is {highscore}. Try to beat it!')
         
     else:
         print(f'Welcome, {name}')
@@ -52,6 +56,7 @@ def gameEnd(app):
     else:
         highscores[name] = [app.goldScore]
         print('Thanks for playing! Hope to see you again!')
+    print('Goodbye!')
     print('''
 -----------------------------------------------
         ''')

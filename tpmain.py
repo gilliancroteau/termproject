@@ -1,20 +1,20 @@
-from cmu_cs3_graphics import *
+#helper files
 from objects import *
 from rooms import *
 from pathandmazefunctions import *
 from filesystem import *
+#modules
+from cmu_cs3_graphics import *
 from PIL import Image
 
-
-#defines start stuff
-def onAppStart(app):
+#game settings for reset
+def gameSettings(app):
+    app.timer = 30 #start time in seconds
     app.paused = False
-    app.playerX = 750
+    app.playerX = app.width//2
     app.playerY = 350
-    app.speed = 15
     app.spriteTimer = 0
     app.spriteI = 0
-    app.stepsPerSecond = 30
     app.sandTimer = 0
     app.direction = 'down'
     app.rooms = createRooms()
@@ -22,36 +22,46 @@ def onAppStart(app):
     app.currentMapRowCol = (2, 2)
     app.currentRoom = app.rooms[0]
     app.currentRoomCoords = app.currentRoom.dimensions()  #[leftX, rightX, topY, bottomY]
-    app.currentRoomDoors = ['left', 'right', 'top', 'bottom']
-    app.timer = 120
     app.goldScore = 0
-    app.spriteSize = 25
     app.goldCoords = app.currentRoom.gold
-    app.goldR = 20
     app.titleScreen = True
     app.helpScreen = False
-    app.helpScreenEnter = [650, 895, 230, 50]#left, top, width, height
-    app.helpScreenExit = [1200, 250, 30, 30]#left, top, width, height
     app.inDungeon = False
     app.exited = False
     app.gameOver = False
-    app.enterRect = (app.width//2-42, app.height*0.75-25, 120, 122) #left, top, width, height
     app.startHealth = 20
     app.health = app.startHealth
-    app.swordStrength = 5
-    app.swordReach = 70
     app.mummies = app.currentRoom.mummies
     app.inventorySand = 0
     app.sandInRoom = app.currentRoom.sand
-    app.hourglass = (700, 400, 100, 150) #left, top, width, height
-    app.portal = (750, 275, 300, 50) #centerX, centerY, width, height
     app.leftDoor = (app.currentRoomCoords[0], app.currentRoomCoords[3] - (app.currentRoomCoords[3] - app.currentRoomCoords[2])/2 - 50, 30, 100)#left, top, width, height
     app.rightDoor = (app.currentRoomCoords[1]-30, app.currentRoomCoords[3] - (app.currentRoomCoords[3] - app.currentRoomCoords[2])/2 - 50, 30, 100)#left, top, width, height
     app.topDoor = (app.currentRoomCoords[0] + (app.currentRoomCoords[1]-app.currentRoomCoords[0])/2 - 50, app.currentRoomCoords[2], 100, 30)#left, top, width, height
     app.bottomDoor = (app.currentRoomCoords[0] + (app.currentRoomCoords[1]-app.currentRoomCoords[0])/2 - 50, app.currentRoomCoords[3]-30, 100, 30)#left, top, width, height
+
+#defines start settings
+#all images drawn by me using pixilart.com
+def onAppStart(app):
+    gameSettings(app)
+    app.speed = 10
+    app.stepsPerSecond = 30
+    app.currentRoomDoors = ['left', 'right', 'top', 'bottom']
+    app.spriteSize = 25
+    app.goldR = 20
+    app.helpScreenEnter = [600, 895, 230, 50]#left, top, width, height
+    app.helpScreenExit = [1150, 250, 30, 30]#left, top, width, height
+    app.enterRect = (app.width//2-92, app.height*0.75-25, 120, 122) #left, top, width, height
+    app.swordStrength = 3
+    app.swordReach = 70
+    app.hourglass = (650, 400, 100, 150) #left, top, width, height
+    app.portal = (700, 275, 300, 50) #centerX, centerY, width, height
     loadPlayerSprite(app)
     mummyFile = Image.open('mummy.png')
     app.mummyFile = CMUImage(mummyFile)
+    goldFile = Image.open('gold.png')
+    app.goldFile = CMUImage(goldFile)
+    sandFile = Image.open('sand.png')
+    app.sandFile = CMUImage(sandFile)
     app.endMessage = False
     gameStart(app)#json file
 
@@ -61,7 +71,7 @@ def distance(x1, y1, x2, y2):
 
 #controls timer, checks for game over, checks for mob attacks, moves mummies
 def onStep(app):
-    if app.gameOver or app.exited and not app.endMessage:
+    if (app.gameOver or app.exited) and not app.endMessage:
         app.endMessage = True
         gameEnd(app)#json file
     if not app.paused:
@@ -129,7 +139,7 @@ def switchRoom(app):
             elif dcol == 1:
                 app.playerX = app.leftDoor[0] + app.leftDoor[2] + app.spriteSize + 10
 
-#controls image cycling for sprites, checks for gold collision and sand collision, checks for exit/doors
+#controls image cycling for sprites, checks for gold and sand collision, checks for exit/doors
 def doStep(app):
     app.spriteTimer += 1
     if app.spriteTimer%3 == 0:
@@ -158,12 +168,13 @@ def doStep(app):
 
 #moves sprite and checks for room bounds
 def doMove(app, dx, dy):
+    #previous rows and cols of player at edges
     prevtopRowCol = rowAndCol(app, app.playerX, app.playerY - app.spriteSize)
     prevbottomRowCol = rowAndCol(app, app.playerX, app.playerY + app.spriteSize)
     prevrightRowCol = rowAndCol(app, app.playerX + app.spriteSize, app.playerY)
     prevleftRowCol = rowAndCol(app, app.playerX - app.spriteSize, app.playerY)
     prevRowCols = [prevtopRowCol, prevbottomRowCol, prevrightRowCol, prevleftRowCol]
-    app.playerX += app.speed * dx
+    app.playerX += app.speed * dx #movement
     app.playerY += app.speed * dy
     if (app.playerY-app.spriteSize < app.currentRoomCoords[2] or 
         app.playerY+app.spriteSize > app.currentRoomCoords[3]
@@ -171,6 +182,8 @@ def doMove(app, dx, dy):
         or app.playerX+app.spriteSize > app.currentRoomCoords[1]):
         app.playerX -= app.speed * dx #within bounds of room
         app.playerY -= app.speed * dy
+        return None
+    #new rows and cols of player at edges
     topRowCol = rowAndCol(app, app.playerX, app.playerY - app.spriteSize)
     bottomRowCol = rowAndCol(app, app.playerX, app.playerY + app.spriteSize)
     rightRowCol = rowAndCol(app, app.playerX + app.spriteSize, app.playerY)
@@ -183,12 +196,16 @@ def doMove(app, dx, dy):
             if newRowCol not in app.currentRoom.graph[prevRowCol]:
                 app.playerX -= app.speed * dx #cannot move thru walls/holes in graph
                 app.playerY -= app.speed * dy
-    #if topRowCol not in app.currentRoom.graph[bottomRowCol]:
-        #app.playerX -= app.speed * dx #helps with maze impaling
-        #app.playerY -= app.speed * dy
-    #if leftRowCol not in app.currentRoom.graph[rightRowCol]:
-        #app.playerX -= app.speed * dx #helps with maze impaling
-        #app.playerY -= app.speed * dy
+                return None
+    if app.currentMapRowCol not in [(2, 0), (4, 2), (2, 4)]:
+        if topRowCol != bottomRowCol and topRowCol not in app.currentRoom.graph[bottomRowCol]:
+            app.playerX -= app.speed * dx #no impaling in maze
+            app.playerY -= app.speed * dy
+            return None
+        if leftRowCol != rightRowCol and leftRowCol not in app.currentRoom.graph[rightRowCol]:
+            app.playerX -= app.speed * dx #no impaling in maze
+            app.playerY -= app.speed * dy
+            return None
 
 #checks if there is a room there in the map and returns room if there is one
 def isRoom(app, drow, dcol):
@@ -205,8 +222,8 @@ def isRoom(app, drow, dcol):
 def rowAndCol(app, x, y):
     leftMargin = app.currentRoomCoords[0]
     topMargin = app.currentRoomCoords[2]
-    row = (y - topMargin) // (app.currentRoom.height/app.currentRoom.rows)
-    col = (x - leftMargin) // (app.currentRoom.width/app.currentRoom.cols)
+    row = int((y - topMargin) // (app.currentRoom.height/app.currentRoom.rows))
+    col = int((x - leftMargin) // (app.currentRoom.width/app.currentRoom.cols))
     return (row, col)
 
 #mouse clicks
@@ -231,11 +248,11 @@ def onMousePress(app, x, y):
                     mummy.takeDamage(app.swordStrength)
             if xyInside(app, x, y, app.hourglass[0], app.hourglass[0] + app.hourglass[2],
                      app.hourglass[1], app.hourglass[1] + app.hourglass[3]):
-                if app.inventorySand > 0:
+                if app.inventorySand > 0 and app.currentMapRowCol == (2, 2):
                     app.timer += Sand.time
                     app.inventorySand -= 1
 
-#moves sprite
+#moves player sprite
 def onKeyHold(app, keys):
     if not app.paused:
         if keys == ['s']:
@@ -257,10 +274,10 @@ def onKeyPress(app, key):
     if key == 'p':
         app.paused = not app.paused
     elif key == 'r':
-        onAppStart(app)
+        gameSettings(app)
 
 #makes sprite lists
-#from demo code by Melina
+#from PIL demo code by Melinda
 #sprites drawn by me using pixilart.com
 def loadPlayerSprite(app):
     spriteSheet = Image.open('player sprite sheet.png')
@@ -345,32 +362,28 @@ def drawDoors(app):
             drow, dcol = 0, -1
             if isRoom(app, drow, dcol):
                 drawRect(app.leftDoor[0], app.leftDoor[1], 
-                app.leftDoor[2], app.leftDoor[3], fill = 'brown')
+                app.leftDoor[2], app.leftDoor[3], fill = 'saddleBrown')
         elif door == 'right':
             drow, dcol = 0, 1
             if isRoom(app, drow, dcol):
                 drawRect(app.rightDoor[0], app.rightDoor[1], 
-                app.rightDoor[2], app.rightDoor[3], fill = 'brown')
+                app.rightDoor[2], app.rightDoor[3], fill = 'saddleBrown')
         elif door == 'top':
             drow, dcol = -1, 0
             if isRoom(app, drow, dcol):
                 drawRect(app.topDoor[0], app.topDoor[1], 
-                app.topDoor[2], app.topDoor[3], fill = 'brown')
+                app.topDoor[2], app.topDoor[3], fill = 'saddleBrown')
         elif door == 'bottom':
             drow, dcol = 1, 0
             if isRoom(app, drow, dcol):
                 drawRect(app.bottomDoor[0], app.bottomDoor[1], 
-                app.bottomDoor[2], app.bottomDoor[3], fill = 'brown')
+                app.bottomDoor[2], app.bottomDoor[3], fill = 'saddleBrown')
 
-#draws the room as a rectangle (will eventually be from an image)
+#draws the room from image
 def drawRoom(app):
     room = app.currentRoom
-    for row in range(room.rows):
-        for col in range(room.cols):
-            color = 'orange' if (row, col) in room.graph else 'yellow'
-            left, top, cellWidth, cellHeight = getCellBounds(app, row, col)
-            drawRect(left, top, cellWidth, cellHeight, border = 'lightgray', 
-            fill = color, borderWidth = 1)
+    drawImage(room.path, app.currentRoomCoords[0], app.currentRoomCoords[2],
+                width = room.width, height = room.height)
 
 #draws the countdown timer
 def drawTimer(app):
@@ -380,58 +393,51 @@ def drawTimer(app):
         seconds = '0' + seconds
     time = minutes+':'+seconds
     drawRect(0, 0, 100, 50, fill = 'blue')
-    drawLabel(time, 50, 25, fill = 'white', size = 14)
+    drawLabel(time, 50, 25, fill = 'white', size = 18)
 
 #draws pile of gold and sand
 def drawGoldandSand(app):
     for coords in app.goldCoords:
-        drawCircle(coords[0], coords[1], app.goldR, fill = 'gold')
+        drawImage(app.goldFile, coords[0], coords[1], align = 'center')
     for sand in app.sandInRoom:
         if sand.onGround:
-            drawRect(sand.x, sand.y, sand.edgeSize, sand.edgeSize, fill = sand.color, align = 'center')
+            drawImage(app.sandFile, sand.x, sand.y, align = 'center')
 
 #draws mummies
 def drawMummies(app):
     for mummy in app.mummies:
         if mummy.alive:
-            drawImage(app.mummyFile, mummy.x, mummy.y, align = 'center')
+            drawImage(app.mummyFile, mummy.x, mummy.y, align = 'bottom')
 
 #draws score
 def drawScore(app):
-    drawRect(1400, 0, 100, 50, fill = 'blue')
-    drawLabel(app.goldScore, 1450, 25, fill = 'white', size = 14)
+    drawRect(1300, 0, 100, 50, fill = 'blue')
+    drawLabel(app.goldScore, 1350, 25, fill = 'white', size = 18)
 
 #draws amount of sand in inventory
 def drawSandInventory(app):
-    drawRect(1400, 60, 100, 50, fill = 'blue')
-    drawLabel(f'Sand: {app.inventorySand}', 1450, 85, fill = 'white', size = 14)
+    drawRect(1300, 60, 100, 50, fill = 'blue')
+    drawLabel(f'Sand: {app.inventorySand}', 1350, 85, fill = 'white', size = 18)
 
 #draws health bar
 def drawHealth(app):
     percentHealth = app.health/app.startHealth
     barWidth = 100
     healthWidth = barWidth*percentHealth + 1
-    #print(percentHealth, barWidth, healthWidth)
     drawRect(app.width//2-barWidth//2, 0, barWidth, 20, fill = 'red')
     drawRect(app.width//2-barWidth//2, 0, healthWidth, 20, fill = 'green')
-
-#draws exit portal
-def drawPortal(app):
-    if app.currentRoom == app.rooms[0]:
-        drawRect(app.portal[0], app.portal[1], app.portal[2], app.portal[3], 
-        fill = 'purple', borderWidth = 10, border = 'black', align = 'center')
 
 #draws title screen 
 def drawTitleScreen(app):
     titleScreenImage = Image.open('sot title screen 500x500.png')
     titleScreenImage = CMUImage(titleScreenImage)
-    drawImage(titleScreenImage, 250, 0, width = 1000, height = 1000)
+    drawImage(titleScreenImage, 200, 0, width = 1000, height = 1000)
 
 #draws help screen if active
 def drawHelpScreen(app):
     howToPlay = Image.open('howtoplayscreen.png')
     howToPlay = CMUImage(howToPlay)
-    drawImage(howToPlay, 200, 200, width = 1100, height = 600)
+    drawImage(howToPlay, 150, 200, width = 1100, height = 600)
     drawRect(app.helpScreenExit[0], app.helpScreenExit[1], app.helpScreenExit[2], 
             app.helpScreenExit[3], fill = None, border = 'white')
     drawLabel('X', app.helpScreenExit[0]+app.helpScreenExit[2]/2, 
@@ -440,16 +446,15 @@ def drawHelpScreen(app):
 #active while playing game
 def drawDungeon(app):
     drawRoom(app)
-    drawDoors(app)
-    drawSprite(app)
     drawTimer(app)
+    drawHealth(app)
+    drawSandInventory(app)
+    drawDoors(app)
+    drawWalls(app)
     drawGoldandSand(app)
     drawScore(app)
     drawMummies(app)
-    drawHealth(app)
-    drawSandInventory(app)
-    drawPortal(app)
-    drawWalls(app)
+    drawSprite(app)
 
 #checks if game is not over, then draws everything
 def redrawAll(app):
@@ -461,12 +466,12 @@ def redrawAll(app):
     elif app.inDungeon:
         drawDungeon(app)
     elif app.gameOver:
-        drawLabel('you died', app.width//2, app.height//2, fill = 'white', size = 20)
+        drawLabel('You Died', app.width//2, app.height//2, fill = 'white', size = 20)
     elif app.exited:
         drawLabel(f'You won {app.goldScore} gold! Congrats', app.width//2, app.height//2, fill = 'white', size = 20)
 
-#run app (these are the game dimensions I am testing on, may eventually change)
-runApp(1500, 1000)
+#run app 
+runApp(1400, 1000)
 
 
 

@@ -13,7 +13,7 @@ class Room(object):
         self.sand = sand
         self.gold = gold
     def topCoords(self):
-        return (1500//2-self.width//2, 1000//2 - self.height//2) #these have app.width and app.height hard coded
+        return (1400//2-self.width//2, 1000//2 - self.height//2) #these have app.width and app.height hard coded
     def dimensions(self):
         coords = self.topCoords()
         leftX = coords[0]
@@ -23,8 +23,6 @@ class Room(object):
         return [leftX, rightX, topY, bottomY]
     def __repr__(self):
         return self.path
-
-
 
 #mummy object
 class Mummy(object):
@@ -53,9 +51,7 @@ class Mummy(object):
             self.x += self.speed * dcol
             self.y += self.speed * drow
 
-
-
-#sand
+#sand object
 class Sand(object):
     time = 10
     def __init__(self, x, y):
